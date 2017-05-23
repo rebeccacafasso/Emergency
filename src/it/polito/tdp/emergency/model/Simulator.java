@@ -40,9 +40,9 @@ public class Simulator {
 	}
 
 	public void addPatient(Patient patient, int time) {
-
-
-	
+		patient.setStatus(PatientStatus.NEW);
+		Event e = new Event(patient, time+DURATION_TRIAGE, EventType.TRIAGE) ;
+		queue.add(e) ;
 	}
 
 	public void run() {
@@ -71,16 +71,71 @@ public class Simulator {
 	 * @param e
 	 */
 	private void processFreeStudioEvent(Event e) {
-
- 
+		Patient p = e.getPatient() ;
 		
+		// un paziente ha liberato lo studio
+		this.patientsTreated++ ;
+		p.setStatus(PatientStatus.OUT);
+		this.occupiedStudios-- ;
+		
+		// devo chiamare il prossimo paziente
+		Patient next = waitingRoom.poll() ;
+		
+		if(next!=null) {
+			int duration = 0 ;
+			if(next.getStatus()==PatientStatus.WHITE)
+				duration = DURATION_WHITE ;
+			else if(next.getStatus()==PatientStatus.YELLOW)
+				duration = DURATION_YELLOW ;
+			else if(next.getStatus()==PatientStatus.RED)
+				duration = DURATION_RED ;
+			
+			this.occupiedStudios++ ;
+			next.setStatus(PatientStatus.TREATING);
+			// eliminare i TIMEOUT FUTURI dalla coda degli eventi
+			queue.add(new Event(next, e.getTime()+duration, EventType.FREE_STUDIO)) ;
+		}
 		
 		
 	}
 
 	private void processTimeoutEvent(Event e) {
 
-
+		Patient p = e.getPatient() ;
+		
+		switch(p.getStatus()) {
+		case WHITE:
+			// abbandona
+			this.patientsAbandoned++ ;
+			p.setStatus(PatientStatus.OUT);
+			waitingRoom.remove(p) ;
+			break;
+			
+		case YELLOW:
+			// diventa rosso
+			waitingRoom.remove(p) ;
+			p.setStatus(PatientStatus.RED);
+			waitingRoom.add(p) ;
+			queue.add(new Event(p, e.getTime()+RED_TIMEOUT, EventType.TIMEOUT)) ;
+			break ;
+			
+		case RED:
+			// muori
+			this.patientsDead++ ;
+			p.setStatus(PatientStatus.BLACK);
+			waitingRoom.remove(p) ;
+			break ;
+			
+		case OUT:
+		case TREATING:
+			// timeout arrivato troppo tardi, non serve più
+			// ignoriamolo
+			break ;
+		
+		default:
+			throw new InternalError("Stato paziente errato "+p.toString()) ;
+		
+		}
 		
 		
 	}
@@ -94,7 +149,49 @@ public class Simulator {
 	 */
 	private void processTriageEvent(Event e) {
 
+		Patient p = e.getPatient() ;
+		
+		// fine del triage
+		
+		// devo assegnare un codice (random)
+		int rand = (int)(1+Math.random()*3) ;
+		if(rand==1) p.setStatus(PatientStatus.WHITE);
+		else if(rand==2) p.setStatus(PatientStatus.YELLOW);
+		else if(rand==3) p.setStatus(PatientStatus.RED);
+		
+		// se c'è uno studio libero, lo mando in cura
+		if(this.occupiedStudios<NS) {
+			
+			int duration = 0 ;
+			if(p.getStatus()==PatientStatus.WHITE)
+				duration = DURATION_WHITE ;
+			else if(p.getStatus()==PatientStatus.YELLOW)
+				duration = DURATION_YELLOW ;
+			else if(p.getStatus()==PatientStatus.RED)
+				duration = DURATION_RED ;
+			
+			this.occupiedStudios++ ;
+			p.setStatus(PatientStatus.TREATING);
+			
+			queue.add(new Event(p, e.getTime()+duration, EventType.FREE_STUDIO)) ;
+		} else {
+			// se no, lo metto in lista d'attesa
+			// e schedulo l'azione di time-out
+			
+			int timeout = 0 ;
+			if(p.getStatus()==PatientStatus.WHITE)
+				timeout = WHITE_TIMEOUT ;
+			else if(p.getStatus()==PatientStatus.YELLOW)
+				timeout = YELLOW_TIMEOUT;
+			else if(p.getStatus()==PatientStatus.RED)
+				timeout = RED_TIMEOUT;
 
+			p.setQueueTime(e.getTime());
+			waitingRoom.add(p) ;
+			
+			queue.add(new Event(p, e.getTime()+timeout, EventType.TIMEOUT)) ;
+			
+		}
 	
 	}
 
