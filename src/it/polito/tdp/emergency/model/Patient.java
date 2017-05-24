@@ -2,10 +2,13 @@ package it.polito.tdp.emergency.model;
 
 public class Patient {
 	
+	//possibili condizioni:
 	public enum PatientStatus { NEW, WHITE, YELLOW, RED, BLACK, TREATING, OUT } ;
 	
 	private String name ;
+	//info per gestire la lista di attesa 
 	private PatientStatus status ;
+	//var che si ricorda quando il paziente è entrato
 	private int queueTime ;
 	
 	public Patient(String name) {

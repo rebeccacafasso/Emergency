@@ -10,7 +10,8 @@ import java.util.Comparator;
  *
  */
 public class PatientComparator implements Comparator<Patient> {
-
+	
+	//il comparatore ha senso se il loro stato è bianco, giallo, rosso 
 	@Override
 	public int compare(Patient o1, Patient o2) {
 		Patient.PatientStatus s1 = o1.getStatus();
@@ -27,11 +28,13 @@ public class PatientComparator implements Comparator<Patient> {
 					String.format("Patient %s should be in waiting state, instead of %s", o2.getName(), s2));
 
 		if( s1 == s2 ) {
-			// same severity code ==> the one with the smallest time must be first
+			// codici uguali ==> mi interessa chi arriva prima
 			return o1.getQueueTime()-o2.getQueueTime() ;
 		} else if(s1==Patient.PatientStatus.RED) {
+			//se il primo è rosso allora deve passare lui
 			return -1 ;
 		} else if(s2==Patient.PatientStatus.RED) {
+			//deve passare  s2
 			return +1 ;
 		} else if(s1==Patient.PatientStatus.YELLOW) {
 			return -1 ;

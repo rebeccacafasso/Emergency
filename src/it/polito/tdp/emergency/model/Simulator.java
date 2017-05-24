@@ -22,6 +22,7 @@ public class Simulator {
 
 	// World model
 	private PriorityQueue<Patient> waitingRoom;
+	//quanti degli n studi sono occupati
 	private int occupiedStudios = 0;
 
 	// Measures of Interest
@@ -41,7 +42,7 @@ public class Simulator {
 
 	public void addPatient(Patient patient, int time) {
 		patient.setStatus(PatientStatus.NEW);
-		Event e = new Event(patient, time+DURATION_TRIAGE, EventType.TRIAGE) ;
+		Event e = new Event(patient, time+DURATION_TRIAGE, EventType.TRIAGE) ; //il cliente è "triagiato"
 		queue.add(e) ;
 	}
 
@@ -52,7 +53,7 @@ public class Simulator {
 
 			switch (e.getType()) {
 			case TRIAGE:
-				processTriageEvent(e);
+				processTriageEvent(e); //tre medoti per processare ogni singolo evento
 				break;
 			case TIMEOUT:
 				processTimeoutEvent(e);
@@ -78,7 +79,7 @@ public class Simulator {
 		p.setStatus(PatientStatus.OUT);
 		this.occupiedStudios-- ;
 		
-		// devo chiamare il prossimo paziente
+		// devo chiamare il prossimo paziente dalla sala di attesa
 		Patient next = waitingRoom.poll() ;
 		
 		if(next!=null) {
@@ -100,6 +101,7 @@ public class Simulator {
 	}
 
 	private void processTimeoutEvent(Event e) {
+		//scatta il timeout per un certo paziente
 
 		Patient p = e.getPatient() ;
 		
@@ -112,8 +114,8 @@ public class Simulator {
 			break;
 			
 		case YELLOW:
-			// diventa rosso
-			waitingRoom.remove(p) ;
+			// diventa rosso: cambiare codice e settare il nuovo timeout del rosso
+			waitingRoom.remove(p) ; //prima lo tolgo, poi lo aggiorno, poi lo rimetto altrimenti la coda non se ne rende conto.
 			p.setStatus(PatientStatus.RED);
 			waitingRoom.add(p) ;
 			queue.add(new Event(p, e.getTime()+RED_TIMEOUT, EventType.TIMEOUT)) ;
@@ -186,10 +188,11 @@ public class Simulator {
 			else if(p.getStatus()==PatientStatus.RED)
 				timeout = RED_TIMEOUT;
 
-			p.setQueueTime(e.getTime());
-			waitingRoom.add(p) ;
+			p.setQueueTime(e.getTime()); //tempo di ingresso nella lista di attesa
+			waitingRoom.add(p) ; //entra nella lista di attesa nelle queue l'oridnamento avviene nel momento in cui faccio add
+								 //quindi se cammbio il parametro dopo la cosa non se ne accorge
 			
-			queue.add(new Event(p, e.getTime()+timeout, EventType.TIMEOUT)) ;
+			queue.add(new Event(p, e.getTime()+timeout, EventType.TIMEOUT)) ; //scatta il timeout quando supera il tempo di timeout
 			
 		}
 	
